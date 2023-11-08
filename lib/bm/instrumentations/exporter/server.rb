@@ -8,7 +8,7 @@ module BM
   module Instrumentations
     module Exporter
 
-      # The `management_server` provides monitoring and metrics on different HTTP port.
+      # The `exporter_server` provides monitoring and metrics on different HTTP port.
       #
       # The server exposes a few endpoints:
       # * `/ping` - a liveness probe, always return `HTTP 200 OK` when the server is running
