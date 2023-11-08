@@ -14,6 +14,7 @@ Rack, S3, Roda and etc.
 * [Ruby Method Metrics](#ruby-methods-metrics)
 * [Endpoint Name Roda Plugin](#endpoint-name-roda-plugin)
 * [Management Server Puma plugin](#management-server-puma-plugin)
+* [Exporter Server WEBRick](#exporter-server-webrick)
 * [Ruby VM & GC Metrics](#ruby-vm--gc-metrics)
 * [System Process Metrics](#system-process-metrics)
 
@@ -210,6 +211,17 @@ end
    function will be invoked a key `x.rack.endpoint` with a value `pong` will be exported into Rack env.
 
 <hr>
+
+## Exporter Server WEBRick
+
+The `exporter_server` plugin provides monitoring and metrics on different HTTP port, it starts a separated
+`WEBRick` server that serves requests.
+
+Start the Exporter::Server WEBrick server
+```ruby
+# config.ru
+BM::Instrumentations::Exporter::Server.start_webrick(port: 9990)
+```
 
 ## Management Server Puma plugin
 
