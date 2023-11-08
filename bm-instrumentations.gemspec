@@ -38,4 +38,5 @@ Gem::Specification.new do |spec|
   spec.require_paths = %w[lib]
 
   spec.add_dependency 'prometheus-client', '~> 2.1'
+  spec.add_dependency 'webrick', '~> 1.8'
 end
