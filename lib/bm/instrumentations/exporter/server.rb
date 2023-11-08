@@ -22,7 +22,7 @@ module BM
             @app.call(env)
           end
 
-          def start_metrics_server!(**rack_app_options)
+          def start_webrick!(**rack_app_options)
             Thread.new do
               default_port = ENV.fetch("PORT", 9394)
               ::Rack::Handler::WEBrick.run(
