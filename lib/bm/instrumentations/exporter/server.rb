@@ -1,5 +1,6 @@
-# frozen_string_literal: true
+# exporter_server.rb
 
+require 'webrick'
 require 'rack'
 require 'logger'
 require 'prometheus/client/formats/text'
@@ -8,28 +9,17 @@ module BM
   module Instrumentations
     module Exporter
 
-      # The `exporter_server` provides monitoring and metrics on different HTTP port.
-      #
-      # The server exposes a few endpoints:
-      # * `/ping` - a liveness probe, always return `HTTP 200 OK` when the server is running
-      # * `/metrics` - metrics list from the current Prometheus registry
-      # * `/gc-status` - print ruby GC statistics as JSON
-      # * `/threads` - print running threads, names and backtraces as JSON
       class Server
-
-        # Rack application entry point for the management server
-        def self.call(env)
-          new(env).response.finish
-        end
-
+        # Initializes a new instance of the Server class
         def initialize(env)
           @env = env
         end
 
-        def response
-          case @env['PATH_INFO']
+        # Responds to a Rack request
+        def call(env)
+          case env['PATH_INFO']
           when '/ping'
-            Rack::Response.new('pong', 200, 'Content-Type' => 'text/plain')
+            response('pong', 200, 'text/plain')
           when '/metrics'
             metrics
           when '/gc-stats'
@@ -37,29 +27,57 @@ module BM
           when '/threads'
             threads
           else
-            Rack::Response.new('Not Found', 404, 'Content-Type' => 'text/plain')
+            response('Not Found', 404, 'text/plain')
           end
+        end
+
+        # Starts a WEBrick server on the specified port
+        def self.start_webrick(port: 9990, host: '0.0.0.0', logger: Logger.new($stdout))
+          server = WEBrick::HTTPServer.new(
+            Port: port,
+            Host: host,
+            Logger: logger,
+            AccessLog: []
+          )
+
+          server.mount_proc '/' do |req, res|
+            rack_env = Rack::MockRequest.env_for(req.request_uri.to_s, { method: req.request_method })
+            status, headers, body = new.call(rack_env)
+            
+            res.status = status
+            headers.each { |k, v| res[k] = v }
+            body.each { |part| res.body << part }
+            
+            body.close if body.respond_to?(:close)
+          end
+
+          trap('INT') { server.shutdown }
+          server.start
         end
 
         private
 
+        # Helper method to construct a Rack response
+        def response(body, status, content_type)
+          [status, { 'Content-Type' => content_type }, [body]]
+        end
+
+        # Collects metrics and constructs a Rack response
         def metrics
-          # Assuming you have a method to collect metrics
-          # Implement your logic to return metrics here
           text = Prometheus::Client::Formats::Text.marshal(Prometheus::Client.registry)
-          Rack::Response.new(text, 200, 'Content-Type' => Prometheus::Client::Formats::Text::CONTENT_TYPE)
+          response(text, 200, Prometheus::Client::Formats::Text::CONTENT_TYPE)
         end
 
+        # Collects GC stats and constructs a Rack response
         def gc_stats
-          # Implement your logic to return GC stats here
           stats = GC.stat.to_json
-          Rack::Response.new(stats, 200, 'Content-Type' => 'application/json')
+          response(stats, 200, 'application/json')
         end
 
+        # Collects thread info and constructs a Rack response
         def threads
-          # Implement your logic to return thread info here
           thread_info = Thread.list.map { |t| { name: t.name, backtrace: t.backtrace } }.to_json
-          Rack::Response.new(thread_info, 200, 'Content-Type' => 'application/json')
+          response(thread_info, 200, 'application/json')
         end
       end
     end
