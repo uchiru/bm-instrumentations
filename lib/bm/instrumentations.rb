@@ -12,6 +12,7 @@ module BM
     autoload :Timings,        'bm/instrumentations/timings/timings'
     autoload :Aws,            'bm/instrumentations/aws/collector'
     autoload :Management,     'bm/instrumentations/management/server'
+    autoload :Exporter,       'bm/instrumentations/exporter/server'
     autoload :Rack,           'bm/instrumentations/rack/middleware'
     autoload :RubyVM,         'bm/instrumentations/ruby_vm/collector'
     autoload :Process,        'bm/instrumentations/process/collector'
