@@ -1,21 +1,54 @@
-# exporter_server.rb
+# frozen_string_literal: true
 
-require 'webrick'
-require 'rack'
-require 'logger'
+require "prometheus/middleware/exporter"
 require 'prometheus/client/formats/text'
+require 'logger'
+require 'webrick'
+require "rack"
 
 module BM
   module Instrumentations
     module Exporter
+      class Server < ::Prometheus::Middleware::Exporter
+        NOT_FOUND_HANDLER = lambda do |_env|
+          [404, { "Content-Type" => "text/plain" }, ["Not Found\n"]]
+        end.freeze
 
-      class Server
-        # Initializes a new instance of the Server class
-        def initialize(env)
-          @env = env
+        class << self
+          # Allows to use middleware as standalone rack application
+          def call(env)
+            options = env.fetch("action_dispatch.request.path_parameters", {})
+            @app ||= new(NOT_FOUND_HANDLER, path: "/", **options)
+            @app.call(env)
+          end
+
+          def start_metrics_server!(**rack_app_options)
+            Thread.new do
+              default_port = ENV.fetch("PORT", 9394)
+              ::Rack::Handler::WEBrick.run(
+                rack_app(**rack_app_options),
+                Host: ENV["PROMETHEUS_EXPORTER_BIND"] || "0.0.0.0",
+                Port: ENV.fetch("PROMETHEUS_EXPORTER_PORT", default_port),
+                AccessLog: [],
+              )
+            end
+          end
+
+          def rack_app(exporter = self, logger: Logger.new(IO::NULL), use_deflater: true, **exporter_options)
+            ::Rack::Builder.new do
+              use ::Rack::Deflater if use_deflater
+              use ::Rack::CommonLogger, logger
+              use ::Rack::ShowExceptions
+              use exporter, **exporter_options
+              run NOT_FOUND_HANDLER
+            end
+          end
         end
 
-        # Responds to a Rack request
+        def initialize(app, options = {})
+          super(app, options.merge(registry: Prometheus::Client.registry))
+        end
+  
         def call(env)
           case env['PATH_INFO']
           when '/ping'
@@ -30,33 +63,7 @@ module BM
             response('Not Found', 404, 'text/plain')
           end
         end
-
-        # Starts a WEBrick server on the specified port
-        def self.start_webrick(port: 9990, host: '0.0.0.0', logger: Logger.new($stdout))
-          server = WEBrick::HTTPServer.new(
-            Port: port,
-            Host: host,
-            Logger: logger,
-            AccessLog: []
-          )
-
-          server.mount_proc '/' do |req, res|
-            rack_env = Rack::MockRequest.env_for(req.request_uri.to_s, { method: req.request_method })
-            status, headers, body = new.call(rack_env)
-            
-            res.status = status
-            headers.each { |k, v| res[k] = v }
-            body.each { |part| res.body << part }
-            
-            body.close if body.respond_to?(:close)
-          end
-
-          trap('INT') { server.shutdown }
-          server.start
-        end
-
-        private
-
+          
         # Helper method to construct a Rack response
         def response(body, status, content_type)
           [status, { 'Content-Type' => content_type }, [body]]
