@@ -217,11 +217,21 @@ end
 The `exporter_server` plugin provides monitoring and metrics on different HTTP port, it starts a separated
 `WEBRick` server that serves requests.
 
+The plugin exposes few endpoints
+* `/ping` - a liveness probe, always return `HTTP 200 OK` when the server is running
+* `/metrics` - metrics list from the current Prometheus registry
+* `/gc-status` - print ruby GC statistics as JSON
+* `/threads` - print running threads, names and backtraces as JSON
+
 Start the Exporter::Server WEBrick server
 ```ruby
 # config.ru
-BM::Instrumentations::Exporter::Server.start_webrick(port: 9990)
+BM::Instrumentations::Exporter::Server.start_webrick!
 ```
+
+Configuration via ENV vars:
+* `PROMETHEUS_EXPORTER_BIND`, default: 0.0.0.0
+* `PROMETHEUS_EXPORTER_PORT`, default: 9394
 
 ## Management Server Puma plugin
 
