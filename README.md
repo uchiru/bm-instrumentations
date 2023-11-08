@@ -214,10 +214,10 @@ end
 
 ## Exporter Server WEBRick
 
-The `exporter_server` plugin provides monitoring and metrics on different HTTP port, it starts a separated
+The `exporter_server` module provides monitoring and metrics on different HTTP port, it starts a separated
 `WEBRick` server that serves requests.
 
-The plugin exposes few endpoints
+The module exposes few endpoints
 * `/ping` - a liveness probe, always return `HTTP 200 OK` when the server is running
 * `/metrics` - metrics list from the current Prometheus registry
 * `/gc-status` - print ruby GC statistics as JSON
