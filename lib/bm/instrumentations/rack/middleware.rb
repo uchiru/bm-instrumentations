@@ -71,6 +71,8 @@ module BM
       # @param exception [Exception]
       # @param stopwatch [Stopwatch]
       def record_exception(env, exception, stopwatch)
+        puts env[ENDPOINT]
+        puts env.keys
         metrics_collection.record_exception(
           method: env[::Rack::REQUEST_METHOD],
           path: env[ENDPOINT],
