@@ -14,6 +14,7 @@ Rack, S3, Roda and etc.
 * [Ruby Method Metrics](#ruby-methods-metrics)
 * [Endpoint Name Roda Plugin](#endpoint-name-roda-plugin)
 * [Management Server Puma plugin](#management-server-puma-plugin)
+* [Exporter Server WEBRick](#exporter-server-webrick)
 * [Ruby VM & GC Metrics](#ruby-vm--gc-metrics)
 * [System Process Metrics](#system-process-metrics)
 
@@ -210,6 +211,27 @@ end
    function will be invoked a key `x.rack.endpoint` with a value `pong` will be exported into Rack env.
 
 <hr>
+
+## Exporter Server WEBRick
+
+The `exporter_server` module provides monitoring and metrics on different HTTP port, it starts a separated
+`WEBRick` server that serves requests.
+
+The module exposes few endpoints
+* `/ping` - a liveness probe, always return `HTTP 200 OK` when the server is running
+* `/metrics` - metrics list from the current Prometheus registry
+* `/gc-status` - print ruby GC statistics as JSON
+* `/threads` - print running threads, names and backtraces as JSON
+
+Start the Exporter::Server WEBrick server
+```ruby
+# config.ru
+BM::Instrumentations::Exporter::Server.start_webrick!
+```
+
+Configuration via ENV vars:
+* `PROMETHEUS_EXPORTER_BIND`, default: 0.0.0.0
+* `PROMETHEUS_EXPORTER_PORT`, default: 9394
 
 ## Management Server Puma plugin
 

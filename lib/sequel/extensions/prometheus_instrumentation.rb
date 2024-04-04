@@ -45,7 +45,7 @@ module Sequel
       def log_connection_yield(sql, conn, args = nil) # rubocop:disable Metrics/MethodLength
         stopwatch = BM::Instrumentations::Stopwatch.started
         query = prometheus_query_name_of(sql)
-        db = conn.query_options[:database]
+        db = conn.respond_to?(:query_options) ? conn.query_options[:database] : conn.db
         begin
           super(sql, conn, args).tap do |_|
             metrics_collection.record_query(db: db, query: query, stopwatch: stopwatch)
